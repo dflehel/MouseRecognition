@@ -20,6 +20,7 @@ import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import static mouserecognition.MouseRecognition.NUM_ACTIONS;
+import static mouserecognition.Settings.LOAD_MODEL;
 import weka.core.Instances;
 import weka.core.Attribute;
 import weka.core.FastVector;
@@ -36,10 +37,10 @@ public class Classifier {
     private RandomForest randomforest;
     private ArrayList<Double> output = new ArrayList<>();
     private ArrayList<Attribute> att = new ArrayList<>();
-    private Instances instances ;
+    private Instances instances;
     private Instances toclassify;
     private FileWriter file;
-    private int counter =0;
+    private int counter = 0;
     private Display display;
 
     public Display getDisplay() {
@@ -49,8 +50,7 @@ public class Classifier {
     public void setDisplay(Display display) {
         this.display = display;
     }
-    
-    
+
     public FileWriter getFile() {
         return file;
     }
@@ -58,8 +58,7 @@ public class Classifier {
     public void setFile(FileWriter file) {
         this.file = file;
     }
-    
-    
+
     public Queue<Feature> getMoves() {
         return moves;
     }
@@ -81,39 +80,39 @@ public class Classifier {
                     Logger.getLogger(Extraction.class.getName()).log(Level.SEVERE, null, ex);
                 }
             } else {
-                    double movesProbs[] = new double[2];
-                    for(Feature f:this.moves){
-                        Instance instance = f.getInstance();
-                        instance.setDataset(this.instances);
-                        
-                        try {
-                            double []probs = this.randomforest.distributionForInstance(instance);
-                            //for(double p:probs){
-                                //System.out.print(p+"  ");
-                                
-                            //}
-                            movesProbs[0] += probs[0];
-                            movesProbs[1] += probs[1];
-                        } catch (Exception ex) {
-                            Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
-                        }
+                double movesProbs[] = new double[2];
+                for (Feature f : this.moves) {
+                    Instance instance = f.getInstance();
+                    instance.setDataset(this.instances);
+
+                    try {
+                        double[] probs = this.randomforest.distributionForInstance(instance);
+                        //for(double p:probs){
+                        //System.out.print(p+"  ");
+
+                        //}
+                        movesProbs[0] += probs[0];
+                        movesProbs[1] += probs[1];
+                    } catch (Exception ex) {
+                        Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
                     }
+                }
                 try {
-                    System.out.println((counter++)+". Time: "+ Calendar.getInstance().getTime()+ "\tProbability: "+movesProbs[1] / NUM_ACTIONS);
-                    this.file.append((counter)+". Time: "+ Calendar.getInstance().getTime()+ ",Probability 0 :,"+movesProbs[0] / NUM_ACTIONS +",Probability 1 :,"+movesProbs[1] / NUM_ACTIONS+"\n");
-                    this.display.setscore((counter)+". Time: "+ Calendar.getInstance().getTime()+ "\tProbability: "+movesProbs[1] / NUM_ACTIONS);
+                    System.out.println((counter++) + ". Time: " + Calendar.getInstance().getTime() + "\tProbability: " + movesProbs[1] / NUM_ACTIONS);
+                    this.file.append((counter) + ". Time: " + Calendar.getInstance().getTime() + ",Probability 0 :," + movesProbs[0] / NUM_ACTIONS + ",Probability 1 :," + movesProbs[1] / NUM_ACTIONS + "\n");
+                    this.display.setscore((counter) + ". Time: " + Calendar.getInstance().getTime() + "\tProbability: " + movesProbs[1] / NUM_ACTIONS);
                     this.file.flush();
                 } catch (IOException ex) {
                     Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                    this.toclassify.clear();
-                    
-                    synchronized (this.moves) {
-                        this.moves.poll();
-                    }
-                    System.out.println("Kimenet :" + this.toString());
-               // } catch (Exception ex) {
-                   // Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+                this.toclassify.clear();
+
+                synchronized (this.moves) {
+                    this.moves.poll();
+                }
+                System.out.println("Kimenet :" + this.toString());
+                // } catch (Exception ex) {
+                // Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
                 //}
             }
         }
@@ -127,24 +126,54 @@ public class Classifier {
     private Queue<Feature> moves = new LinkedList<Feature>();
 
     public Classifier() {
+        //train classifier
+        if (!LOAD_MODEL) {
+            BufferedReader datafile = null;
+            try {
+                datafile = new BufferedReader(new FileReader("training.arff"));
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            Instances data = null;
+            try {
+                data = new Instances(datafile);
+            } catch (IOException ex) {
+                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            data.setClassIndex(data.numAttributes() - 1);
+            this.randomforest = new RandomForest();
+            //this.randomforest.setNumFeatures(23);
+            //this.randomforest.setMaxDepth(10);
+            try {
+                this.randomforest.buildClassifier(data);
+            } catch (Exception ex) {
+                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else {
+            try {
+                ObjectInputStream objectInputStream
+                        = new ObjectInputStream(new FileInputStream("betoltes.model"));
+                this.randomforest = (RandomForest) objectInputStream.readObject();
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (ClassNotFoundException ex) {
+                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
         try {
-            ObjectInputStream objectInputStream
-                    = new ObjectInputStream(new FileInputStream("betoltes.model"));
-            this.randomforest = (RandomForest) objectInputStream.readObject();
             String f = "f";
             this.instances = new Instances(new BufferedReader(new FileReader("header.arff")));
-            this.instances.setClassIndex(this.instances.numAttributes()-1);
+            this.instances.setClassIndex(this.instances.numAttributes() - 1);
             this.toclassify = new Instances(new BufferedReader(new FileReader("header.arff")));
-            this.toclassify.setClassIndex(this.instances.numAttributes()-1);
-            for (Integer i=1;i<24;++i){
-                this.att.add(new Attribute(new String(f+i.toString() + " numeric")));
+            this.toclassify.setClassIndex(this.instances.numAttributes() - 1);
+            for (Integer i = 1; i < 24; ++i) {
+                this.att.add(new Attribute(new String(f + i.toString() + " numeric")));
             }
-            
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ClassNotFoundException ex) {
             Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
