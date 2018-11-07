@@ -11,5 +11,13 @@ package mouserecognition;
  */
 public class Settings {
     public static final boolean LOAD_MODEL = false;
+    public static final int NUM_ACTIONS = 10;
+    
+        //Delimiter used in CSV file
+    private static final String COMMA_DELIMITER = ",";
+    private static final String NEW_LINE_SEPARATOR = "\n";
+     
+    //CSV file header
+    private static final String FILE_HEADER = "0,1\n";
     
 }

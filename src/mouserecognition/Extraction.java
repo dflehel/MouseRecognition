@@ -10,7 +10,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import static mouserecognition.MouseRecognition.NUM_ACTIONS;
+import static mouserecognition.Settings.NUM_ACTIONS;
 
 /**
  *

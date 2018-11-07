@@ -6,7 +6,6 @@
 package mouserecognition;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -19,13 +18,11 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import static mouserecognition.MouseRecognition.NUM_ACTIONS;
 import static mouserecognition.Settings.LOAD_MODEL;
+import static mouserecognition.Settings.NUM_ACTIONS;
 import weka.core.Instances;
 import weka.core.Attribute;
-import weka.core.FastVector;
 import weka.classifiers.trees.RandomForest;
-import weka.core.DenseInstance;
 import weka.core.Instance;
 
 /**

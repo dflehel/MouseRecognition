@@ -29,7 +29,7 @@ public class MouseRecognition {
     //CSV file header
     private static final String FILE_HEADER = "0,1\n";
     
-     public static final int NUM_ACTIONS = 10;
+
     /**
      * @param args the command line arguments
      */
