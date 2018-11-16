@@ -10,7 +10,7 @@ package mouserecognition;
  * @author Denes
  */
 public class Settings {
-    public static final boolean LOAD_MODEL = false;
+    public static final boolean LOAD_MODEL = true;
     public static final int NUM_ACTIONS = 10;
     
         //Delimiter used in CSV file

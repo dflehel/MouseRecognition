@@ -96,8 +96,9 @@ public class Classifier {
                 }
                 try {
                     System.out.println((counter++) + ". Time: " + Calendar.getInstance().getTime() + "\tProbability: " + movesProbs[1] / NUM_ACTIONS);
-                    this.file.append((counter) + ". Time: " + Calendar.getInstance().getTime() + ",Probability 0 :," + movesProbs[0] / NUM_ACTIONS + ",Probability 1 :," + movesProbs[1] / NUM_ACTIONS + "\n");
-                    this.display.setscore((counter) + ". Time: " + Calendar.getInstance().getTime() + "\tProbability: " + movesProbs[1] / NUM_ACTIONS);
+                    this.file.append(movesProbs[1] / NUM_ACTIONS + "\n");
+                    
+                    this.display.setscore((counter) + ". Time: " + Calendar.getInstance().getTime() + "\tProbability: " + String.format("%.4f" ,movesProbs[1] / NUM_ACTIONS));
                     this.file.flush();
                 } catch (IOException ex) {
                     Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
