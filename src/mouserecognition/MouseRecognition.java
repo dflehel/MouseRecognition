@@ -58,7 +58,7 @@ public class MouseRecognition {
         try {
             fileWriter = new FileWriter("kimenet.csv");
             fileWriter.append(FILE_HEADER.toString());
-           Queue<Feature> moves = new LinkedList<Feature>();
+           Queue<IFeature> moves = new LinkedList<IFeature>();
            Thread classthread = new Thread("class"){
                public void run(){
                      System.out.println("run by: " + getName());

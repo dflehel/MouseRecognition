@@ -56,11 +56,11 @@ public class Classifier {
         this.file = file;
     }
 
-    public Queue<Feature> getMoves() {
+    public Queue<IFeature> getMoves() {
         return moves;
     }
 
-    public void setMoves(Queue<Feature> moves) {
+    public void setMoves(Queue<IFeature> moves) {
         this.moves = moves;
     }
 
@@ -78,7 +78,7 @@ public class Classifier {
                 }
             } else {
                 double movesProbs[] = new double[2];
-                for (Feature f : this.moves) {
+                for (IFeature f : this.moves) {
                     Instance instance = f.getInstance();
                     instance.setDataset(this.instances);
 
@@ -121,7 +121,7 @@ public class Classifier {
         return "Classifier{" + "output=" + output + '}';
     }
 
-    private Queue<Feature> moves = new LinkedList<Feature>();
+    private Queue<IFeature> moves = new LinkedList<IFeature>();
 
     public Classifier() {
         //train classifier
