@@ -50,7 +50,7 @@ public class MouseRecognition {
 //                GlobalScreen.addNativeMouseListener(datacollector);
 //                GlobalScreen.addNativeMouseMotionListener(datacollector);
 //                GlobalScreen.addNativeMouseWheelListener(datacollector);
-           Queue<ArrayList<Event>> events = new LinkedList<ArrayList<Event>>(); 
+           Queue<ArrayList<IEvent>> events = new LinkedList<ArrayList<IEvent>>(); 
            FileWriter fileWriter;
            Display d; 
         d = new Display();
@@ -62,10 +62,10 @@ public class MouseRecognition {
            Thread classthread = new Thread("class"){
                public void run(){
                      System.out.println("run by: " + getName());
-                     Classifier classifier = new Classifier();
-                     classifier.setFile(fileWriter);
-                     classifier.setMoves(moves);
-                     classifier.setDisplay(d);
+                     IClassifier classifier = new DFLRandomForestClassifier(moves,fileWriter,d);
+                //     classifier.setFile(fileWriter);
+                //     classifier.setMoves(moves);
+                //     classifier.setDisplay(d);
                      classifier.classify();
                }
            };

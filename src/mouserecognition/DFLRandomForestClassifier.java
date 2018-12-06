@@ -29,7 +29,7 @@ import weka.core.Instance;
  *
  * @author Denes
  */
-public class Classifier {
+public class DFLRandomForestClassifier implements IClassifier{
 
     private RandomForest randomforest;
     private ArrayList<Double> output = new ArrayList<>();
@@ -39,7 +39,76 @@ public class Classifier {
     private FileWriter file;
     private int counter = 0;
     private Display display;
+    private Queue<IFeature> moves = new LinkedList<IFeature>();
 
+    
+    
+    
+    
+    public DFLRandomForestClassifier(RandomForest randomforest, FileWriter file, Display display) {
+        this.randomforest = randomforest;
+        this.file = file;
+        this.display = display;
+    }
+
+    public DFLRandomForestClassifier(Queue<IFeature> moves,FileWriter file, Display display) {
+        this.file = file;
+        this.display = display;
+        this.moves = moves;
+         if (!LOAD_MODEL) {
+            BufferedReader datafile = null;
+            try {
+                datafile = new BufferedReader(new FileReader("training.arff"));
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            Instances data = null;
+            try {
+                data = new Instances(datafile);
+            } catch (IOException ex) {
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            data.setClassIndex(data.numAttributes() - 1);
+            this.randomforest = new RandomForest();
+            //this.randomforest.setNumFeatures(23);
+            //this.randomforest.setMaxDepth(10);
+            try {
+                this.randomforest.buildClassifier(data);
+            } catch (Exception ex) {
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else {
+            try {
+                ObjectInputStream objectInputStream
+                        = new ObjectInputStream(new FileInputStream("betoltes.model"));
+                this.randomforest = (RandomForest) objectInputStream.readObject();
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (ClassNotFoundException ex) {
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        try {
+            String f = "f";
+            this.instances = new Instances(new BufferedReader(new FileReader("header.arff")));
+            this.instances.setClassIndex(this.instances.numAttributes() - 1);
+            this.toclassify = new Instances(new BufferedReader(new FileReader("header.arff")));
+            this.toclassify.setClassIndex(this.instances.numAttributes() - 1);
+            for (Integer i = 1; i < 24; ++i) {
+                this.att.add(new Attribute(new String(f + i.toString() + " numeric")));
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    
+    
+    
     public Display getDisplay() {
         return display;
     }
@@ -91,7 +160,7 @@ public class Classifier {
                         movesProbs[0] += probs[0];
                         movesProbs[1] += probs[1];
                     } catch (Exception ex) {
-                        Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
                 try {
@@ -101,7 +170,7 @@ public class Classifier {
                     this.display.setscore((counter) + ". Time: " + Calendar.getInstance().getTime() + "\tProbability: " + String.format("%.4f" ,movesProbs[1] / NUM_ACTIONS),i);
                     this.file.flush();
                 } catch (IOException ex) {
-                    Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 this.toclassify.clear();
 
@@ -121,22 +190,22 @@ public class Classifier {
         return "Classifier{" + "output=" + output + '}';
     }
 
-    private Queue<IFeature> moves = new LinkedList<IFeature>();
+   
 
-    public Classifier() {
+    public DFLRandomForestClassifier() {
         //train classifier
         if (!LOAD_MODEL) {
             BufferedReader datafile = null;
             try {
                 datafile = new BufferedReader(new FileReader("training.arff"));
             } catch (FileNotFoundException ex) {
-                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
             }
             Instances data = null;
             try {
                 data = new Instances(datafile);
             } catch (IOException ex) {
-                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
             }
             data.setClassIndex(data.numAttributes() - 1);
             this.randomforest = new RandomForest();
@@ -145,7 +214,7 @@ public class Classifier {
             try {
                 this.randomforest.buildClassifier(data);
             } catch (Exception ex) {
-                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
             }
         } else {
             try {
@@ -153,11 +222,11 @@ public class Classifier {
                         = new ObjectInputStream(new FileInputStream("betoltes.model"));
                 this.randomforest = (RandomForest) objectInputStream.readObject();
             } catch (FileNotFoundException ex) {
-                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
             } catch (IOException ex) {
-                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
             } catch (ClassNotFoundException ex) {
-                Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         try {
@@ -170,9 +239,9 @@ public class Classifier {
                 this.att.add(new Attribute(new String(f + i.toString() + " numeric")));
             }
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 

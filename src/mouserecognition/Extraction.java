@@ -19,16 +19,16 @@ import static mouserecognition.Settings.NUM_ACTIONS;
 public class Extraction {
 
 
-    public Queue<ArrayList<Event>> getEventslist() {
+    public Queue<ArrayList<IEvent>> getEventslist() {
         return eventslist;
     }
 
-    public void setEventslist(Queue<ArrayList<Event>> eventslist) {
+    public void setEventslist(Queue<ArrayList<IEvent>> eventslist) {
         this.eventslist = eventslist;
     }
     
     
-    private Queue<ArrayList<Event>> eventslist = new LinkedList<ArrayList<Event>>();
+    private Queue<ArrayList<IEvent>> eventslist = new LinkedList<ArrayList<IEvent>>();
     
     //itt megvan csinalva hogy apalajaban minden csak IFeatures interface tipusu osztalyokat fogad
     private Queue<IFeature> moves = new LinkedList<IFeature>();
@@ -40,7 +40,7 @@ public class Extraction {
     public void setMoves(Queue<IFeature> moves) {
         this.moves = moves;
     }
-    private ArrayList<Event> events = new ArrayList<>();
+    private ArrayList<IEvent> events = new ArrayList<>();
     private String csvfile;
 
     
@@ -79,11 +79,11 @@ public class Extraction {
     
     
     
-    public ArrayList<Event> getEvents() {
+    public ArrayList<IEvent> getEvents() {
         return events;
     }
 
-    public void setEvents(ArrayList<Event> events) {
+    public void setEvents(ArrayList<IEvent> events) {
         this.events = events;
     }
 

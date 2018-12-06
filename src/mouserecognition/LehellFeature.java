@@ -44,13 +44,13 @@ public class LehellFeature implements IFeature{
    private int milyen;	
    private int melyikgomb;
    private double[] values;
-   private ArrayList<Event> events = new ArrayList<>();
+   private ArrayList<IEvent> events = new ArrayList<>();
 
-    public ArrayList<Event> getEvents() {
+    public ArrayList<IEvent> getEvents() {
         return events;
     }
 
-    public void setEvents(ArrayList<Event> events) {
+    public void setEvents(ArrayList<IEvent> events) {
         this.events = events;
     }
    
@@ -311,7 +311,7 @@ public class LehellFeature implements IFeature{
     }
 
     @Override
-    public void ExtractFeatures(ArrayList<Event> events) {
+    public void ExtractFeatures(ArrayList<IEvent> events) {
             this.events = events;
             this.setAtlagsebesseg(this.attalagsebesseg());
             this.setAtlagszogseb(this.atlagszogseb());

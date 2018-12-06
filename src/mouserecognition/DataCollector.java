@@ -28,8 +28,8 @@ import java.util.logging.Logger;/*
 public class DataCollector implements NativeMouseInputListener , NativeMouseWheelListener{
     
     
-    private Queue<ArrayList<Event>> events = new LinkedList<ArrayList<Event>>();
-    private ArrayList<Event> eventlist = new ArrayList<>();
+    private Queue<ArrayList<IEvent>> events = new LinkedList<ArrayList<IEvent>>();
+    private ArrayList<IEvent> eventlist = new ArrayList<IEvent>();
     private Thread t;
 
     public Thread getT() {
@@ -43,11 +43,11 @@ public class DataCollector implements NativeMouseInputListener , NativeMouseWhee
     public DataCollector() {
     }
 
-    public Queue<ArrayList<Event>> getEvents() {
+    public Queue<ArrayList<IEvent>> getEvents() {
         return events;
     }
 
-    public void setEvents(Queue<ArrayList<Event>> events) {
+    public void setEvents(Queue<ArrayList<IEvent>> events) {
         this.events = events;
     }
 
@@ -67,7 +67,7 @@ public class DataCollector implements NativeMouseInputListener , NativeMouseWhee
     public void nativeMousePressed(NativeMouseEvent nme) {
         if (nme.getButton() == 1){
                     long estimatedTime = System.currentTimeMillis() - startTime;
-                    Event event = new Event();
+                    IEvent event = new DFLDatasetEvent();
                     event.setTime(estimatedTime);
                     event.setX(nme.getX());
                     event.setY(nme.getY());
@@ -88,7 +88,7 @@ public class DataCollector implements NativeMouseInputListener , NativeMouseWhee
                 }
          if (nme.getButton()==2){
                 long estimatedTime = System.currentTimeMillis() - startTime;
-                   Event event = new Event();
+                   IEvent event = new DFLDatasetEvent();
                     event.setTime(estimatedTime);
                     event.setX(nme.getX());
                     event.setY(nme.getY());
@@ -115,7 +115,7 @@ public class DataCollector implements NativeMouseInputListener , NativeMouseWhee
     public void nativeMouseReleased(NativeMouseEvent nme) {
          if (nme.getButton() == 1){
                     long estimatedTime = System.currentTimeMillis() - startTime;
-                    Event event = new Event();
+                    IEvent event = new DFLDatasetEvent();
                     event.setTime(estimatedTime);
                     event.setX(nme.getX());
                     event.setY(nme.getY());
@@ -125,7 +125,7 @@ public class DataCollector implements NativeMouseInputListener , NativeMouseWhee
                 }
          if (nme.getButton()==2){
                 long estimatedTime = System.currentTimeMillis() - startTime;
-                   Event event = new Event();
+                   IEvent event = new DFLDatasetEvent();
                     event.setTime(estimatedTime);
                     event.setX(nme.getX());
                     event.setY(nme.getY());
@@ -138,7 +138,7 @@ public class DataCollector implements NativeMouseInputListener , NativeMouseWhee
     @Override
     public void nativeMouseMoved(NativeMouseEvent nme) {
         long estimatedTime = System.currentTimeMillis() - startTime;
-          Event event = new Event();
+          IEvent event = new DFLDatasetEvent();
                     event.setTime(estimatedTime);
                     event.setX(nme.getX());
                     event.setY(nme.getY());
@@ -167,7 +167,7 @@ public class DataCollector implements NativeMouseInputListener , NativeMouseWhee
     @Override
     public void nativeMouseDragged(NativeMouseEvent nme) {
      long estimatedTime = System.currentTimeMillis() - startTime;
-       Event event = new Event();
+       IEvent event = new DFLDatasetEvent();
                     event.setTime(estimatedTime);
                     event.setX(nme.getX());
                     event.setY(nme.getY());

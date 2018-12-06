@@ -19,6 +19,6 @@ public interface IFeature {
      public Instance getInstance();
      
      /**A fuggveny felelosege az hogy megcsinalja a featurek kinyereset egy eventbol */
-     public void ExtractFeatures(ArrayList<Event> events);
+     public void ExtractFeatures(ArrayList<IEvent> events);
     
 }
