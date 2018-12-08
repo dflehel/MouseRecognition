@@ -70,8 +70,8 @@ public class DFLRandomForestClassifier implements IClassifier{
             }
             data.setClassIndex(data.numAttributes() - 1);
             this.randomforest = new RandomForest();
-            //this.randomforest.setNumFeatures(23);
-            //this.randomforest.setMaxDepth(10);
+            this.randomforest.setNumFeatures(23);
+            this.randomforest.setMaxDepth(100);
             try {
                 this.randomforest.buildClassifier(data);
             } catch (Exception ex) {
@@ -96,7 +96,7 @@ public class DFLRandomForestClassifier implements IClassifier{
             this.instances.setClassIndex(this.instances.numAttributes() - 1);
             this.toclassify = new Instances(new BufferedReader(new FileReader("header.arff")));
             this.toclassify.setClassIndex(this.instances.numAttributes() - 1);
-            for (Integer i = 1; i < 24; ++i) {
+            for (Integer i = 1; i < Settings.DFL_NUM_FEATURES; ++i) {
                 this.att.add(new Attribute(new String(f + i.toString() + " numeric")));
             }
         } catch (FileNotFoundException ex) {
@@ -235,7 +235,7 @@ public class DFLRandomForestClassifier implements IClassifier{
             this.instances.setClassIndex(this.instances.numAttributes() - 1);
             this.toclassify = new Instances(new BufferedReader(new FileReader("header.arff")));
             this.toclassify.setClassIndex(this.instances.numAttributes() - 1);
-            for (Integer i = 1; i < 24; ++i) {
+            for (Integer i = 1; i < Settings.DFL_NUM_FEATURES; ++i) {
                 this.att.add(new Attribute(new String(f + i.toString() + " numeric")));
             }
         } catch (FileNotFoundException ex) {

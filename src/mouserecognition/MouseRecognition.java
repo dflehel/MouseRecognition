@@ -7,7 +7,10 @@ package mouserecognition;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.logging.Level;
@@ -23,11 +26,8 @@ import org.jnativehook.NativeHookException;
 public class MouseRecognition {
     
       //Delimiter used in CSV file
-    private static final String COMMA_DELIMITER = ",";
-    private static final String NEW_LINE_SEPARATOR = "\n";
      
     //CSV file header
-    private static final String FILE_HEADER = "0,1\n";
     
 
     /**
@@ -50,14 +50,18 @@ public class MouseRecognition {
 //                GlobalScreen.addNativeMouseListener(datacollector);
 //                GlobalScreen.addNativeMouseMotionListener(datacollector);
 //                GlobalScreen.addNativeMouseWheelListener(datacollector);
+             DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd__HH_mm_ss");
+                Date date = new Date();
+               
+                String ss = dateFormat.format(date);
            Queue<ArrayList<IEvent>> events = new LinkedList<ArrayList<IEvent>>(); 
            FileWriter fileWriter;
            Display d; 
         d = new Display();
         d.setVisible(true);
         try {
-            fileWriter = new FileWriter("kimenet.csv");
-            fileWriter.append(FILE_HEADER.toString());
+            fileWriter = new FileWriter("kimenet_"+ss+".csv");
+            fileWriter.append(Settings.FILE_HEADER.toString());
            Queue<IFeature> moves = new LinkedList<IFeature>();
            Thread classthread = new Thread("class"){
                public void run(){

@@ -74,7 +74,7 @@ public class LehellFeature implements IFeature{
     
     
     public LehellFeature() {
-        this.values = new double[24];
+        this.values = new double[Settings.DFL_NUM_FEATURES];
     }
 
     public LehellFeature(double Euklideszi, double Xtav, double Ytav, double Pontonkentitav, double Sebesseg, double Xsebesseg, double Ysebesseg, double Atlagsebesseg, double Xatlagszabesseg, double Yatlagsebesseg, double Gyorsulas, double Xgyorsulas, double Ygyorsulas, double Pontonkentigyorsulas, double Xpontonkentigyosulas, double Ypontonkentigyorsulas, double jerkue, double jerkpontonkenti, double ossszszog, double atlagszogseb, int mozgaspontok, int milyen, int melyikgomb) {
