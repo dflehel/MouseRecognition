@@ -18,6 +18,10 @@ public class Settings {
     private static final String COMMA_DELIMITER = ",";
     private static final String NEW_LINE_SEPARATOR = "\n";
      
+    public static final int WHICH_FEATURES = 0;// lehel feature
+    //public static final int WHICH_FEATURES = 1;//teacher feature
+    
+    
     //CSV file header
     public static final String FILE_HEADER = "1\n";
     

@@ -59,7 +59,13 @@ public class Extraction {
             this.events = this.eventslist.poll();
              }
             //A csere eseten a megfelelo osztalyt kell peldanyositani
-            IFeature feature = new LehellFeature();
+            IFeature feature = null;
+            if (Settings.WHICH_FEATURES == 0){
+                feature = new LehellFeature();
+            }
+            else{
+                feature = new TeacherFeature();
+            }
             //Annak meg kell hivni az extract featuret
             feature.ExtractFeatures(events);
            synchronized (this.moves) {
