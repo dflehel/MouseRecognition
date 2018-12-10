@@ -484,9 +484,9 @@ public class TeacherFeature implements IFeature {
                 
             }
         }        
-        for(IEvent event: this.events ){
-            System.out.println(event.getTime());
-        }
+//        for(IEvent event: this.events ){
+//            System.out.println(event.getTime());
+//        }
         events = this.events;
         this.setAction_type(actionType());
 
@@ -723,7 +723,7 @@ public class TeacherFeature implements IFeature {
         this.setMin_curv(min_curvature);
         this.setMax_curv(max_curvature);
        
-        System.out.println(this.toString());
+        //System.out.println(this.toString());
     }
 
     private int actionType() {
