@@ -21,4 +21,10 @@ public class Settings {
     //CSV file header
     public static final String FILE_HEADER = "1\n";
     
+      // Constants for feature extraction
+     public static final double CURVATURE_THRESHOLD = 5.0E-4;
+     public static double EPS = 1.0E-5;
+     public static final int NUM_FEATURES = 39;
+    
+    
 }
