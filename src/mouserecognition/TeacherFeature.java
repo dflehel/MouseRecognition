@@ -8,8 +8,10 @@ package mouserecognition;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import static mouserecognition.Settings.AM_NUM_FEATURES;
@@ -21,7 +23,281 @@ import weka.core.Instance;
  * @author manyi
  */
 public class TeacherFeature implements IFeature {
+    public static final String TEST_FILE ="test_user_1.arff";
+    public static PrintStream ps;
+    
+    public static void printHeader(){
+        try {
+            ps = new PrintStream(TEST_FILE);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(TeacherFeature.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        Scanner scanner = null;
+        try {
+            scanner = new Scanner( new File("header.arff"));
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(TeacherFeature.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        while( scanner.hasNextLine() ){
+            String line = scanner.nextLine();
+            ps.println(line);
+        }
+        
+    }
+    
+    static{
+        printHeader();
+    }
+    
+     @Override
+    public void ExtractFeatures(ArrayList<IEvent> events) {
+        this.events = cleanEvents( events );
+        events = this.events;
+        this.setAction_type(actionType());
 
+        // pointwise velocoties
+        int n = events.size();
+        double v[] = new double[n - 1];
+        double path[] = new double[n - 1];
+        double vx[] = new double[n - 1];
+        double vy[] = new double[n - 1];
+        double t[] = new double[n - 1];
+        double angles[] = new double[n - 1];
+
+        double sum_of_angles = 0;
+        double maxv = 0, maxvx = 0, maxvy = 0;
+        double min_notnull_v = Integer.MAX_VALUE, min_notnull_vx = Integer.MAX_VALUE, min_notnull_vy = Integer.MAX_VALUE;
+        double avgv = 0, avgvx = 0, avgvy = 0;
+        for (int i = 0; i < n - 1; ++i) {
+            double dx = Math.abs(events.get(i + 1).getX() - events.get(i).getX());
+            double dy = Math.abs(events.get(i + 1).getY() - events.get(i).getY());
+            double dt = events.get(i + 1).getTime() - events.get(i).getTime();;
+            double d = Math.sqrt(dx * dx + dy * dy);
+            path[i] = d;
+            v[i] = d / dt;
+            vx[i] = dx / dt;
+            vy[i] = dy / dt;
+            t[i] = dt;
+
+            double angle = Math.atan2(dy, dx);
+            angles[i] = angle;
+            sum_of_angles += angle;
+
+            avgv += v[i];
+            avgvx += vx[i];
+            avgvy += vy[i];
+
+            if (v[i] > maxv) {
+                maxv = v[i];
+            }
+            if (v[i] != 0 && v[i] < min_notnull_v) {
+                min_notnull_v = v[i];
+            }
+            if (vx[i] > maxvx) {
+                maxvx = vx[i];
+            }
+            if (vx[i] != 0 && vx[i] < min_notnull_vx) {
+                min_notnull_vx = vx[i];
+            }
+            if (vy[i] > maxvy) {
+                maxvy = vy[i];
+            }
+            if (vy[i] != 0 && vy[i] < min_notnull_vy) {
+                min_notnull_vy = vy[i];
+            }
+
+        }
+        avgv /= (n - 1);
+        avgvx /= (n - 1);
+        avgvy /= (n - 1);
+        double sdv = stdev(v, avgv);
+        double sdvx = stdev(vx, avgvx);
+        double sdvy = stdev(vy, avgvy);
+
+        this.setMean_v(avgv);
+        this.setSd_v(sdv);
+        this.setMin_v(min_notnull_v);
+        this.setMax_v(maxv);
+        
+        this.setMean_vx(avgvx);
+        this.setSd_vx(sdvx);
+        this.setMin_vx(min_notnull_vx);
+        this.setMax_vx(maxvx);
+        
+        this.setMean_vy(avgvy);
+        this.setSd_vy(sdvy);
+        this.setMin_vy(min_notnull_vy);
+        this.setMax_vy(maxvy);
+        
+        this.setSum_of_angles(sum_of_angles);
+        
+        //# direction: -pi..pi
+        double theta0 = Math.atan2(events.get(events.size() - 1).getY() - events.get(0).getY(), events.get(events.size() - 1).getX() - events.get(0).getX());
+        double direction = computeDirection(theta0);
+        this.setDirection(direction);
+        
+
+        // pointwise acceleration
+        double a[] = new double[n - 2];
+        double maxa = 0, avga = 0;
+        double mina_not_null = a[0];
+        double a_beg_time = t[0];
+        boolean isStillPositive = true;
+        for (int i = 0; i < a.length; ++i) {
+            a[i] = (v[i + 1] - v[i]) / t[i + 1];
+            avga += a[i];
+            if (maxa > a[i]) {
+                maxa = a[i];
+            }
+            if (a[i] != 0 && a[i] < mina_not_null) {
+                mina_not_null = a[i];
+            }
+            if (isStillPositive && a[i] > 0) {
+                a_beg_time += t[i + 1];
+            } else {
+                isStillPositive = false;
+            }
+        }
+        avga /= (n - 2);
+        double sda = stdev(a, avga);
+        this.setMean_a(avga);
+        this.setSd_a(sda);
+        this.setMin_a(mina_not_null);
+        this.setMax_a(maxa);
+
+        long elapsedTime = events.get(events.size() - 1).getTime() - events.get(0).getTime();
+        a_beg_time /= elapsedTime;
+
+        
+        this.setElapsed_time(elapsedTime);
+        int numEvents = events.size();
+        this.setNum_events(numEvents);
+        this.setA_beg_time(a_beg_time);
+
+        double traveledDistance = computeTraveledDistance(events);
+        if (traveledDistance < Settings.EPS) {
+            return;
+        }
+        this.setTraveled_distance(traveledDistance);
+
+        double endToEndLine = computeEndToEndLine(events);
+        this.setEnd_to_end_line(endToEndLine);
+
+        double efficiency = endToEndLine / traveledDistance;
+        this.setEfficiency(efficiency);
+        
+
+        // Angular velocity
+        double omega[] = new double[n - 1];
+        omega[0] = angles[0] / t[0];
+        double min_omega = omega[0];
+        double max_omega = omega[0];
+        double avg_omega = 0;
+        for (int i = 1; i < n - 1; ++i) {
+            omega[i] = (angles[i] - angles[i - 1]) / t[i];
+            if (omega[i] < min_omega) {
+                min_omega = omega[i];
+            }
+            if (omega[i] > max_omega) {
+                max_omega = omega[i];
+            }
+            avg_omega += omega[i];
+        }
+        avg_omega /= (n - 1);
+        double sd_omega = stdev(omega, avg_omega);
+
+        this.setMean_omega(avg_omega);
+        this.setSd_omega(sd_omega);
+        this.setMin_omega(min_omega);
+        this.setMax_omega(max_omega);
+        // jerk
+        double jerk[] = new double[n - 2];
+        jerk[0] = a[0] / t[1];
+        double min_jerk = jerk[0];
+        double max_jerk = jerk[0];
+        double avg_jerk = 0;
+        for (int i = 1; i < n - 2; ++i) {
+            jerk[i] = (a[i] - angles[i - 1]) / t[i + 1];
+            if (jerk[i] < min_jerk) {
+                min_jerk = jerk[i];
+            }
+            if (jerk[i] > max_jerk) {
+                max_jerk = jerk[i];
+            }
+            avg_jerk += jerk[i];
+        }
+        avg_jerk /= (n - 2);
+        double sd_jerk = stdev(jerk, avg_jerk);
+
+        this.mean_jerk = avg_jerk;
+        this.sd_jerk = sd_jerk;
+        this.min_jerk = min_jerk;
+        this.max_jerk = max_jerk;
+
+        this.setMean_jerk(avg_jerk);
+        this.setSd_jerk(sd_jerk);
+        this.setMin_jerk(min_jerk);
+        this.setMax_jerk(max_jerk);
+//      curvature: defined by Gamboa&Fred, 2004
+//      numCriticalPoints
+        int numCriticalPoints = 0;
+        double curvature[] = new double[n - 1];
+        int i = 0;
+        while (path[i] == 0) {
+            ++i;
+        }
+        curvature[0] = angles[i] / path[i];
+        ++i;
+        double min_curvature = curvature[0];
+        double max_curvature = curvature[0];
+        double avg_curvature = curvature[0];
+        int k = 0;
+        for (; i < n - 1; ++i) {
+            if (path[i] == 0) {
+                continue;
+            }
+            ++k;
+            curvature[k] = (angles[i] - angles[i - 1]) / (path[i]);
+
+            avg_curvature += curvature[k];
+            if (curvature[k] < min_curvature) {
+                min_curvature = curvature[k];
+            }
+            if (curvature[k] > max_curvature) {
+                max_curvature = curvature[k];
+            }
+            if (curvature[k] < Settings.CURVATURE_THRESHOLD) {
+                numCriticalPoints++;
+            }
+        }
+        avg_curvature /= (k + 1);
+        double sum = 0;
+        for (int l = 0; l < (k + 1); ++l) {
+            sum += (curvature[l] - avg_curvature) * (curvature[l] - avg_curvature);
+        }
+        double sd_curvature = Math.sqrt(sum / (k + 1));
+        
+        this.setNum_critical_points(numCriticalPoints);
+        this.setLargest_deviation(largestDeviation(events));
+        this.setMean_curv(avg_curvature);
+        this.setSd_curv(sd_curvature);
+        this.setMin_curv(min_curvature);
+        this.setMax_curv(max_curvature);
+       
+        //System.out.println(this.toString());
+        for( int j=0; j<this.values.length; ++j){
+            ps.printf("%8.5f,", values[ j]);
+        }
+        ps.println(1);
+        //System.out.println("Baj van 2");
+        
+    }
+    
+    @Override
+    public void finalize(){
+        ps.close();
+    }
+    
     public static final ArrayList<String> att = new ArrayList<String>(Arrays.asList(
             "elapsed_time", "num_events", "action_type", "num_critical_points", "traveled_distance",
             "end_to_end_line", "largest_deviation", "efficiency", "a_beg_time", "sum_of_angles",
@@ -69,7 +345,8 @@ public class TeacherFeature implements IFeature {
 
     @Override
     public String toString() {
-        return "TeacherFeature{" + "elapsed_time=" + elapsed_time + ", num_events=" + num_events + ", action_type=" + action_type + ", num_critical_points=" + num_critical_points + ", traveled_distance=" + traveled_distance + ", end_to_end_line=" + end_to_end_line + ", largest_deviation=" + largest_deviation + ", efficiency=" + efficiency + ", a_beg_time=" + a_beg_time + ", sum_of_angles=" + sum_of_angles + ", mean_v=" + mean_v + ", sd_v=" + sd_v + ", min_v=" + min_v + ", max_v=" + max_v + ", mean_vx=" + mean_vx + ", sd_vx=" + sd_vx + ", min_vx=" + min_vx + ", max_vx=" + max_vx + ", mean_vy=" + mean_vy + ", sd_vy=" + sd_vy + ", min_vy=" + min_vy + ", max_vy=" + max_vy + ", mean_a=" + mean_a + ", sd_a=" + sd_a + ", min_a=" + min_a + ", max_a=" + max_a + ", mean_omega=" + mean_omega + ", sd_omega=" + sd_omega + ", min_omega=" + min_omega + ", max_omega=" + max_omega + ", mean_jerk=" + mean_jerk + ", sd_jerk=" + sd_jerk + ", min_jerk=" + min_jerk + ", max_jerk=" + max_jerk + ", mean_curv=" + mean_curv + ", sd_curv=" + sd_curv + ", min_curv=" + min_curv + ", max_curv=" + max_curv + ", values=" + values + ", events=" + events + '}';
+        //return "TeacherFeature{" + "elapsed_time=" + elapsed_time + ", num_events=" + num_events + ", action_type=" + action_type + ", num_critical_points=" + num_critical_points + ", traveled_distance=" + traveled_distance + ", end_to_end_line=" + end_to_end_line + ", largest_deviation=" + largest_deviation + ", efficiency=" + efficiency + ", a_beg_time=" + a_beg_time + ", sum_of_angles=" + sum_of_angles + ", mean_v=" + mean_v + ", sd_v=" + sd_v + ", min_v=" + min_v + ", max_v=" + max_v + ", mean_vx=" + mean_vx + ", sd_vx=" + sd_vx + ", min_vx=" + min_vx + ", max_vx=" + max_vx + ", mean_vy=" + mean_vy + ", sd_vy=" + sd_vy + ", min_vy=" + min_vy + ", max_vy=" + max_vy + ", mean_a=" + mean_a + ", sd_a=" + sd_a + ", min_a=" + min_a + ", max_a=" + max_a + ", mean_omega=" + mean_omega + ", sd_omega=" + sd_omega + ", min_omega=" + min_omega + ", max_omega=" + max_omega + ", mean_jerk=" + mean_jerk + ", sd_jerk=" + sd_jerk + ", min_jerk=" + min_jerk + ", max_jerk=" + max_jerk + ", mean_curv=" + mean_curv + ", sd_curv=" + sd_curv + ", min_curv=" + min_curv + ", max_curv=" + max_curv + ", values=" + values + ", events=" + events + '}';
+        return "TeacherFeature{  direction=" + direction + ", action_type=" + action_type+ " Start: "+this.events.get(0).getX()+", "+this.events.get(0).getY()+" Stop: "+this.events.get(events.size()-1).getX()+", "+this.events.get(events.size()-1).getY();
     }
 
     @Override
@@ -81,46 +358,46 @@ public class TeacherFeature implements IFeature {
         this.values = new double[AM_NUM_FEATURES];
     }
 
-    public TeacherFeature(double elapsed_time, double num_events, double action_type, double num_critical_points, double traveled_distance, double end_to_end_line, double largest_deviation, double efficiency, double a_beg_time, double sum_of_angles, double mean_v, double sd_v, double min_v, double max_v, double mean_vx, double sd_vx, double min_vx, double max_vx, double mean_vy, double sd_vy, double min_vy, double max_vy, double mean_a, double sd_a, double min_a, double max_a, double mean_omega, double sd_omega, double min_omega, double max_omega, double mean_jerk, double sd_jerk, double min_jerk, double max_jerk, double mean_curv, double sd_curv, double min_curv, double max_curv) {
-        this.elapsed_time = elapsed_time;
-        this.num_events = num_events;
-        this.action_type = action_type;
-        this.num_critical_points = num_critical_points;
-        this.traveled_distance = traveled_distance;
-        this.end_to_end_line = end_to_end_line;
-        this.largest_deviation = largest_deviation;
-        this.efficiency = efficiency;
-        this.a_beg_time = a_beg_time;
-        this.sum_of_angles = sum_of_angles;
-        this.mean_v = mean_v;
-        this.sd_v = sd_v;
-        this.min_v = min_v;
-        this.max_v = max_v;
-        this.mean_vx = mean_vx;
-        this.sd_vx = sd_vx;
-        this.min_vx = min_vx;
-        this.max_vx = max_vx;
-        this.mean_vy = mean_vy;
-        this.sd_vy = sd_vy;
-        this.min_vy = min_vy;
-        this.max_vy = max_vy;
-        this.mean_a = mean_a;
-        this.sd_a = sd_a;
-        this.min_a = min_a;
-        this.max_a = max_a;
-        this.mean_omega = mean_omega;
-        this.sd_omega = sd_omega;
-        this.min_omega = min_omega;
-        this.max_omega = max_omega;
-        this.mean_jerk = mean_jerk;
-        this.sd_jerk = sd_jerk;
-        this.min_jerk = min_jerk;
-        this.max_jerk = max_jerk;
-        this.mean_curv = mean_curv;
-        this.sd_curv = sd_curv;
-        this.min_curv = min_curv;
-        this.max_curv = max_curv;
-    }
+//    public TeacherFeature(double elapsed_time, double num_events, double action_type, double num_critical_points, double traveled_distance, double end_to_end_line, double largest_deviation, double efficiency, double a_beg_time, double sum_of_angles, double mean_v, double sd_v, double min_v, double max_v, double mean_vx, double sd_vx, double min_vx, double max_vx, double mean_vy, double sd_vy, double min_vy, double max_vy, double mean_a, double sd_a, double min_a, double max_a, double mean_omega, double sd_omega, double min_omega, double max_omega, double mean_jerk, double sd_jerk, double min_jerk, double max_jerk, double mean_curv, double sd_curv, double min_curv, double max_curv) {
+//        this.elapsed_time = elapsed_time;
+//        this.num_events = num_events;
+//        this.action_type = action_type;
+//        this.num_critical_points = num_critical_points;
+//        this.traveled_distance = traveled_distance;
+//        this.end_to_end_line = end_to_end_line;
+//        this.largest_deviation = largest_deviation;
+//        this.efficiency = efficiency;
+//        this.a_beg_time = a_beg_time;
+//        this.sum_of_angles = sum_of_angles;
+//        this.mean_v = mean_v;
+//        this.sd_v = sd_v;
+//        this.min_v = min_v;
+//        this.max_v = max_v;
+//        this.mean_vx = mean_vx;
+//        this.sd_vx = sd_vx;
+//        this.min_vx = min_vx;
+//        this.max_vx = max_vx;
+//        this.mean_vy = mean_vy;
+//        this.sd_vy = sd_vy;
+//        this.min_vy = min_vy;
+//        this.max_vy = max_vy;
+//        this.mean_a = mean_a;
+//        this.sd_a = sd_a;
+//        this.min_a = min_a;
+//        this.max_a = max_a;
+//        this.mean_omega = mean_omega;
+//        this.sd_omega = sd_omega;
+//        this.min_omega = min_omega;
+//        this.max_omega = max_omega;
+//        this.mean_jerk = mean_jerk;
+//        this.sd_jerk = sd_jerk;
+//        this.min_jerk = min_jerk;
+//        this.max_jerk = max_jerk;
+//        this.mean_curv = mean_curv;
+//        this.sd_curv = sd_curv;
+//        this.min_curv = min_curv;
+//        this.max_curv = max_curv;
+//    }
 
     public double getElapsed_time() {
         return elapsed_time;
@@ -473,269 +750,21 @@ public class TeacherFeature implements IFeature {
         this.values[38] = direction;
     }
 
-    @Override
-    public void ExtractFeatures(ArrayList<IEvent> events) {
-        this.events = new ArrayList<IEvent>();
-        this.events.add( events.get(0));
-       
-        for( IEvent event: events ){
-            if( event.getTime() != this.events.get(this.events.size() -1 ).getTime() ){
-                this.events.add(event);
-                
-            }
-        }        
-//        for(IEvent event: this.events ){
-//            System.out.println(event.getTime());
-//        }
-        events = this.events;
-        this.setAction_type(actionType());
-
-        // pointwise velocoties
-        int n = events.size();
-        double v[] = new double[n - 1];
-        double path[] = new double[n - 1];
-        double vx[] = new double[n - 1];
-        double vy[] = new double[n - 1];
-        double t[] = new double[n - 1];
-        double angles[] = new double[n - 1];
-
-        double sum_of_angles = 0;
-        double maxv = 0, maxvx = 0, maxvy = 0;
-        double min_notnull_v = Integer.MAX_VALUE, min_notnull_vx = Integer.MAX_VALUE, min_notnull_vy = Integer.MAX_VALUE;
-        double avgv = 0, avgvx = 0, avgvy = 0;
-        for (int i = 0; i < n - 1; ++i) {
-            double dx = Math.abs(events.get(i + 1).getX() - events.get(i).getX());
-            double dy = Math.abs(events.get(i + 1).getY() - events.get(i).getY());
-            double dt = events.get(i + 1).getTime() - events.get(i).getTime();;
-            double d = Math.sqrt(dx * dx + dy * dy);
-            path[i] = d;
-            v[i] = d / dt;
-            vx[i] = dx / dt;
-            vy[i] = dy / dt;
-            t[i] = dt;
-
-            double angle = Math.atan2(dy, dx);
-            angles[i] = angle;
-            sum_of_angles += angle;
-
-            avgv += v[i];
-            avgvx += vx[i];
-            avgvy += vy[i];
-
-            if (v[i] > maxv) {
-                maxv = v[i];
-            }
-            if (v[i] != 0 && v[i] < min_notnull_v) {
-                min_notnull_v = v[i];
-            }
-            if (vx[i] > maxvx) {
-                maxvx = vx[i];
-            }
-            if (vx[i] != 0 && vx[i] < min_notnull_vx) {
-                min_notnull_vx = vx[i];
-            }
-            if (vy[i] > maxvy) {
-                maxvy = vy[i];
-            }
-            if (vy[i] != 0 && vy[i] < min_notnull_vy) {
-                min_notnull_vy = vy[i];
-            }
-
-        }
-        avgv /= (n - 1);
-        avgvx /= (n - 1);
-        avgvy /= (n - 1);
-        double sdv = stdev(v, avgv);
-        double sdvx = stdev(vx, avgvx);
-        double sdvy = stdev(vy, avgvy);
-
-        this.setMean_v(avgv);
-        this.setSd_v(sdv);
-        this.setMin_v(min_notnull_v);
-        this.setMax_v(maxv);
-        
-        this.setMean_vx(avgvx);
-        this.setSd_vx(sdvx);
-        this.setMin_vx(min_notnull_vx);
-        this.setMax_vx(maxvx);
-        
-        this.setMean_vy(avgvy);
-        this.setSd_vy(sdvy);
-        this.setMin_vy(min_notnull_vy);
-        this.setMax_vy(maxvy);
-        
-        this.setSum_of_angles(sum_of_angles);
-        
-        //# direction: -pi..pi
-        double theta0 = Math.atan2(events.get(events.size() - 1).getY() - events.get(0).getY(), events.get(events.size() - 1).getX() - events.get(0).getX());
-        double direction = computeDirection(theta0);
-        this.setDirection(direction);
-        
-
-        // pointwise acceleration
-        double a[] = new double[n - 2];
-        double maxa = 0, avga = 0;
-        double mina_not_null = a[0];
-        double a_beg_time = t[0];
-        boolean isStillPositive = true;
-        for (int i = 0; i < a.length; ++i) {
-            a[i] = (v[i + 1] - v[i]) / t[i + 1];
-            avga += a[i];
-            if (maxa > a[i]) {
-                maxa = a[i];
-            }
-            if (a[i] != 0 && a[i] < mina_not_null) {
-                mina_not_null = a[i];
-            }
-            if (isStillPositive && a[i] > 0) {
-                a_beg_time += t[i + 1];
-            } else {
-                isStillPositive = false;
-            }
-        }
-        avga /= (n - 2);
-        double sda = stdev(a, avga);
-        this.setMean_a(avga);
-        this.setSd_a(sda);
-        this.setMin_a(mina_not_null);
-        this.setMax_a(maxa);
-
-        long elapsedTime = events.get(events.size() - 1).getTime() - events.get(0).getTime();
-        a_beg_time /= elapsedTime;
-
-        
-        this.setElapsed_time(elapsedTime);
-        int numEvents = events.size();
-        this.setNum_events(numEvents);
-        this.setA_beg_time(a_beg_time);
-
-        double traveledDistance = computeTraveledDistance(events);
-        if (traveledDistance < Settings.EPS) {
-            return;
-        }
-        this.setTraveled_distance(traveledDistance);
-
-        double endToEndLine = computeEndToEndLine(events);
-        this.setEnd_to_end_line(endToEndLine);
-
-        double efficiency = endToEndLine / traveledDistance;
-        this.setEfficiency(efficiency);
-        
-
-        // Angular velocity
-        double omega[] = new double[n - 1];
-        omega[0] = angles[0] / t[0];
-        double min_omega = omega[0];
-        double max_omega = omega[0];
-        double avg_omega = 0;
-        for (int i = 1; i < n - 1; ++i) {
-            omega[i] = (angles[i] - angles[i - 1]) / t[i];
-            if (omega[i] < min_omega) {
-                min_omega = omega[i];
-            }
-            if (omega[i] > max_omega) {
-                max_omega = omega[i];
-            }
-            avg_omega += omega[i];
-        }
-        avg_omega /= (n - 1);
-        double sd_omega = stdev(omega, avg_omega);
-
-        this.setMean_omega(avg_omega);
-        this.setSd_omega(sd_omega);
-        this.setMin_omega(min_omega);
-        this.setMax_omega(max_omega);
-        // jerk
-        double jerk[] = new double[n - 2];
-        jerk[0] = a[0] / t[1];
-        double min_jerk = jerk[0];
-        double max_jerk = jerk[0];
-        double avg_jerk = 0;
-        for (int i = 1; i < n - 2; ++i) {
-            jerk[i] = (a[i] - angles[i - 1]) / t[i + 1];
-            if (jerk[i] < min_jerk) {
-                min_jerk = jerk[i];
-            }
-            if (jerk[i] > max_jerk) {
-                max_jerk = jerk[i];
-            }
-            avg_jerk += jerk[i];
-        }
-        avg_jerk /= (n - 2);
-        double sd_jerk = stdev(jerk, avg_jerk);
-
-        this.mean_jerk = avg_jerk;
-        this.sd_jerk = sd_jerk;
-        this.min_jerk = min_jerk;
-        this.max_jerk = max_jerk;
-
-        this.setMean_jerk(avg_jerk);
-        this.setSd_jerk(sd_jerk);
-        this.setMin_jerk(min_jerk);
-        this.setMax_jerk(max_jerk);
-//      curvature: defined by Gamboa&Fred, 2004
-//      numCriticalPoints
-        int numCriticalPoints = 0;
-        double curvature[] = new double[n - 1];
-        int i = 0;
-        while (path[i] == 0) {
-            ++i;
-        }
-        curvature[0] = angles[i] / path[i];
-        ++i;
-        double min_curvature = curvature[0];
-        double max_curvature = curvature[0];
-        double avg_curvature = curvature[0];
-        int k = 0;
-        for (; i < n - 1; ++i) {
-            if (path[i] == 0) {
-                continue;
-            }
-            ++k;
-            curvature[k] = (angles[i] - angles[i - 1]) / (path[i]);
-
-            avg_curvature += curvature[k];
-            if (curvature[k] < min_curvature) {
-                min_curvature = curvature[k];
-            }
-            if (curvature[k] > max_curvature) {
-                max_curvature = curvature[k];
-            }
-            if (curvature[k] < Settings.CURVATURE_THRESHOLD) {
-                numCriticalPoints++;
-            }
-        }
-//        for( int ii=0; ii<n-1; ++ii){
-//            System.out.printf("%8.4f, ", curvature[ ii ]);
-//        }
-//        System.out.println();
-        avg_curvature /= (k + 1);
-        double sum = 0;
-        for (int l = 0; l < (k + 1); ++l) {
-            sum += (curvature[l] - avg_curvature) * (curvature[l] - avg_curvature);
-        }
-        double sd_curvature = Math.sqrt(sum / (k + 1));
-        
-        this.setNum_critical_points(numCriticalPoints);
-        this.setLargest_deviation(largestDeviation(events));
-        this.setMean_curv(avg_curvature);
-        this.setSd_curv(sd_curvature);
-        this.setMin_curv(min_curvature);
-        this.setMax_curv(max_curvature);
-       
-        //System.out.println(this.toString());
-    }
+   
 
     private int actionType() {
         for (int i = 0; i < this.events.size(); ++i) {
             if (this.events.get(i).getActiontype().equalsIgnoreCase("Drag")) {
-                return 0;
+                // DD - Drag and Drop action
+                return 4;
             }
         }
+        // MM - Mouse Move action
         if (this.events.get(this.events.size() - 1).getActiontype().equalsIgnoreCase("Move")) {
             return 2;
         }
-        return 1;
+        // PC - Point Click action
+        return 3;
     }
 
     public static double computeTraveledDistance(ArrayList<IEvent> events) {
@@ -829,6 +858,25 @@ public class TeacherFeature implements IFeature {
             return 4;
         }
         return 0;
+    }
+
+    private ArrayList<IEvent> cleanEvents(ArrayList<IEvent> events) {
+         this.events = new ArrayList<IEvent>();
+        //An action does not start with Released mouse event 
+        int index =0;
+        while( index < events.size() && events.get( index ).getActiontype().equals("Released")){
+            ++index;
+        }
+        this.events.add( events.get(index));
+       
+        for( ; index < events.size(); ++index ){
+            IEvent event = events.get(index);
+            if( event.getTime() != this.events.get(this.events.size() -1 ).getTime() ){
+                this.events.add(event);
+                
+            }
+        }   
+        return this.events;
     }
     
     
