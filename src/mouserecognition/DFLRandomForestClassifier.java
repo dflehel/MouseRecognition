@@ -16,10 +16,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import static mouserecognition.Settings.LOAD_MODEL;
 import static mouserecognition.Settings.NUM_ACTIONS;
+import static mouserecognition.Settings.NUM_TO_CLASSIFY;
 import weka.core.Instances;
 import weka.core.Attribute;
 import weka.classifiers.trees.RandomForest;
@@ -29,7 +31,7 @@ import weka.core.Instance;
  *
  * @author Denes
  */
-public class DFLRandomForestClassifier implements IClassifier{
+public class DFLRandomForestClassifier implements IClassifier {
 
     private RandomForest randomforest;
     private ArrayList<Double> output = new ArrayList<>();
@@ -41,21 +43,19 @@ public class DFLRandomForestClassifier implements IClassifier{
     private Display display;
     private Queue<IFeature> moves = new LinkedList<IFeature>();
 
-    
-    
-    
-    
+    private Queue<Double> probabilities = new LinkedBlockingDeque<>(NUM_TO_CLASSIFY);
+
     public DFLRandomForestClassifier(RandomForest randomforest, FileWriter file, Display display) {
         this.randomforest = randomforest;
         this.file = file;
         this.display = display;
     }
 
-    public DFLRandomForestClassifier(Queue<IFeature> moves,FileWriter file, Display display) {
+    public DFLRandomForestClassifier(Queue<IFeature> moves, FileWriter file, Display display) {
         this.file = file;
         this.display = display;
         this.moves = moves;
-         if (!LOAD_MODEL) {
+        if (!LOAD_MODEL) {
             BufferedReader datafile = null;
             try {
                 datafile = new BufferedReader(new FileReader("training.arff"));
@@ -70,8 +70,7 @@ public class DFLRandomForestClassifier implements IClassifier{
             }
             data.setClassIndex(data.numAttributes() - 1);
             this.randomforest = new RandomForest();
-            this.randomforest.setNumFeatures(23);
-            this.randomforest.setMaxDepth(100);
+            //this.randomforest.setMaxDepth(100);
             try {
                 this.randomforest.buildClassifier(data);
             } catch (Exception ex) {
@@ -106,9 +105,6 @@ public class DFLRandomForestClassifier implements IClassifier{
         }
     }
 
-    
-    
-    
     public Display getDisplay() {
         return display;
     }
@@ -147,40 +143,56 @@ public class DFLRandomForestClassifier implements IClassifier{
                 }
             } else {
                 double movesProbs[] = new double[2];
+                int SIZE = this.moves.size();
+
+                System.out.println("MOVES #actions: " + this.moves.size());
                 for (IFeature f : this.moves) {
                     Instance instance = f.getInstance();
                     instance.setDataset(this.instances);
+                    System.out.println(f.toString());
+                    TeacherFeature tf = (TeacherFeature) f;
 
+                    printEventData(tf);
                     try {
                         double[] probs = this.randomforest.distributionForInstance(instance);
-                        //for(double p:probs){
-                        //System.out.print(p+"  ");
-
-                        //}
-                        movesProbs[0] += probs[0];
                         movesProbs[1] += probs[1];
+                        System.out.println((counter) + ". Time: " + Calendar.getInstance().getTime() + "\tProbability: " + probs[1]);
                     } catch (Exception ex) {
                         Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
+                TeacherFeature tf = null;
+                if( Settings.WHICH_FEATURES == 1 ){
+                    tf = (TeacherFeature) this.moves.element();
+                }
+               
                 try {
-                    System.out.println((counter++) + ". Time: " + Calendar.getInstance().getTime() + "\tProbability: " + movesProbs[1] / NUM_ACTIONS);
-                    this.file.append(movesProbs[1] / NUM_ACTIONS + "\n");
-                    Integer i = new Integer((int) ((movesProbs[1]/NUM_ACTIONS)*100));
-                    this.display.setscore((counter) + ". Time: " + Calendar.getInstance().getTime() + "\tProbability: " + String.format("%.4f" ,movesProbs[1] / NUM_ACTIONS),i);
+                    double res = (movesProbs[1] / SIZE);
+                    if (probabilities.size() < Settings.NUM_TO_CLASSIFY) {
+                        probabilities.add(res);
+                    } else {
+                        probabilities.poll();
+                        probabilities.add(res);
+                    }
+                    double mean = computeMean(probabilities);
+                    if( Settings.WHICH_FEATURES == 1 ){
+                        this.file.append(tf.getAction_type() + ", " + res + "\n");
+                    } else{
+                        this.file.append(res + "\n");
+                    }
+                    Integer i = new Integer((int) (mean * 100));
+                    this.display.setscore((counter) + ". Time: " + Calendar.getInstance().getTime() + "\tProbability: " + String.format("%.4f", mean), i);
                     this.file.flush();
                 } catch (IOException ex) {
                     Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
                 }
+
+                ++counter;
                 this.toclassify.clear();
 
                 synchronized (this.moves) {
                     this.moves.poll();
                 }
-                System.out.println("Kimenet :" + this.toString());
-                // } catch (Exception ex) {
-                // Logger.getLogger(Classifier.class.getName()).log(Level.SEVERE, null, ex);
-                //}
             }
         }
     }
@@ -189,8 +201,6 @@ public class DFLRandomForestClassifier implements IClassifier{
     public String toString() {
         return "Classifier{" + "output=" + output + '}';
     }
-
-   
 
     public DFLRandomForestClassifier() {
         //train classifier
@@ -243,6 +253,27 @@ public class DFLRandomForestClassifier implements IClassifier{
         } catch (IOException ex) {
             Logger.getLogger(DFLRandomForestClassifier.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private void printEventData(TeacherFeature f) {
+        System.out.print("BEGIN*** ");
+        for (int i = 0; i < f.getEvents().size(); ++i) {
+            System.out.print(f.getEvents().get(i).getActiontype() + " ");
+
+        }
+
+        System.out.println("END***");
+    }
+
+    private double computeMean(Queue<Double> probabilities) {
+        if (probabilities.isEmpty()) {
+            return 0;
+        }
+        double avg = 0;
+        for (double d : probabilities) {
+            avg += d;
+        }
+        return avg / probabilities.size();
     }
 
 }
