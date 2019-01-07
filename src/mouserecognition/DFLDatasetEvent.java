@@ -10,8 +10,8 @@ package mouserecognition;
  * @author Denes
  */
 public class DFLDatasetEvent implements IEvent {
-    
-     private long time;
+
+    private long time;
     private String buttonype;
     private String actiontype;
     private int x;
@@ -45,7 +45,6 @@ public class DFLDatasetEvent implements IEvent {
         this.y = y;
     }
 
-
     public DFLDatasetEvent() {
     }
 
@@ -68,5 +67,5 @@ public class DFLDatasetEvent implements IEvent {
     public int getY() {
         return y;
     }
-    
+
 }
