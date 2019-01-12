@@ -261,8 +261,15 @@ public class DFLRandomForestClassifier implements IClassifier {
             System.out.print(f.getEvents().get(i).getActiontype() + " ");
 
         }
-
         System.out.println("END***");
+        
+        for (int i = 0; i < f.getEvents().size(); ++i) {
+            if( f.getEvents().get(i).getX() <0 || f.getEvents().get(i).getY()<0 ){
+                System.out.println("NEGATIVE COORDS: "+"("+f.getEvents().get(i).getX() + ","+f.getEvents().get(i).getY()+") ");
+            }
+        }
+        System.out.println();
+        
     }
 
     private double computeMean(Queue<Double> probabilities) {
